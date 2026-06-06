@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prediksi Retensi Karyawan - KNN Matcha Strawberry</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <style>
+        /* Tema Matcha Strawberry Dark Mode */
+        body { 
+            background-color: #1a241f; /* Hijau Matcha Sangat Gelap */
+            color: #e2ede8; /* Teks Putih agak Kehijauan */
+        }
+        .card { 
+            background-color: #23322a; /* Hijau Matcha Gelap Card */
+            border: 1px solid #344a3e;
+            border-radius: 15px; 
+            box-shadow: 0 6px 15px rgba(0,0,0,0.3); 
+        }
+        .text-matcha {
+            color: #8bb89e; /* Warna Hijau Matcha Cerah */
+        }
+        .form-label {
+            color: #ffffff !important; 
+        }
+        .text-muted {
+            color: #c2d1c9 !important; /* Teks penjelasan menjadi lebih terang */
+        }
+        .form-control, .form-select {
+            background-color: #2b3d33;
+            border: 1px solid #415c4d;
+            color: #fff;
+        }
+        .form-control:focus, .form-select:focus {
+            background-color: #2b3d33;
+            border-color: #ff9ebb; /* Fokus Pink Stroberi */
+            color: #fff;
+            box-shadow: 0 0 0 0.25rem rgba(255, 158, 187, 0.25);
+        }
+        /* Tombol & Aksen Pink Strawberry */
+        .btn-strawberry {
+            background-color: #ff7597; /* Pink Stroberi */
+            color: #1a241f;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+        .btn-strawberry:hover {
+            background-color: #ff9ebb;
+            color: #1a241f;
+        }
+        .bg-strawberry-alert {
+            background-color: #bd2c4d; /* Pink Merah Tua untuk Resign */
+            border: 1px solid #e63956;
+        }
+        .bg-matcha-alert {
+            background-color: #2d5a43; /* Hijau untuk Bertahan */
+            border: 1px solid #428562;
+        }
+    </style>
+</head>
+<body>
+
+
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-9">
+            
+            <div class="card p-4 mb-4">
+                <h2 class="text-center mb-2 text-matcha fw-bold">Sistem Prediksi Retensi Karyawan</h2>
+                <p class="text-muted text-center">Analisis Attrition Karyawan Menggunakan KNN — <span style="color: #ff7597;">Matcha Strawberry Edition</span></p>
+                <hr style="border-color: #344a3e;">
+                
+                <form method="POST" action="/">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-semibold">Usia Karyawan (Age)</label>
+                            <input type="number" class="form-control" name="Age" value="{{ inputs.Age if inputs else '' }}" required placeholder="Contoh: 35">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-semibold">Gaji Bulanan / USD (MonthlyIncome)</label>
+                            <input type="number" class="form-control" name="MonthlyIncome" value="{{ inputs.MonthlyIncome if inputs else '' }}" required placeholder="Contoh: 5000">
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-semibold">Jarak Rumah ke Kantor / KM (DistanceFromHome)</label>
+                            <input type="number" class="form-control" name="DistanceFromHome" value="{{ inputs.DistanceFromHome if inputs else '' }}" required placeholder="Contoh: 10">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-semibold">Total Pengalaman Kerja / Tahun (TotalWorkingYears)</label>
+                            <input type="number" class="form-control" name="TotalWorkingYears" value="{{ inputs.TotalWorkingYears if inputs else '' }}" required placeholder="Contoh: 8">
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-semibold">Kepuasan Kerja (JobSatisfaction)</label>
+                            <select class="form-select" name="JobSatisfaction" required>
+                                <option value="1" {% if inputs and inputs.JobSatisfaction == 1 %}selected{% endif %}>1 - Sangat Tidak Puas</option>
+                                <option value="2" {% if inputs and inputs.JobSatisfaction == 2 %}selected{% endif %}>2 - Tidak Puas</option>
+                                <option value="3" {% if inputs and inputs.JobSatisfaction == 3 %}selected{% endif %}>3 - Puas</option>
+                                <option value="4" {% if inputs and inputs.JobSatisfaction == 4 %}selected{% endif %}>4 - Sangat Puas</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-4">
+                            <label class="form-label fw-semibold">Lama di Perusahaan / Tahun (YearsAtCompany)</label>
+                            <input type="number" class="form-control" name="YearsAtCompany" value="{{ inputs.YearsAtCompany if inputs else '' }}" required placeholder="Contoh: 3">
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-strawberry w-100 py-2">Analisis Status Karyawan</button>
+                </form>
+            </div>
+
+            {% if result %}
+            <div class="card p-4 mb-4 {% if 'RESIGN' in result %}bg-strawberry-alert{% else %}bg-matcha-alert{% endif %} text-white">
+                <h4 class="text-center m-0 fw-semibold">Hasil Analisis Model KNN:</h4>
+                <p class="text-center display-6 fw-bold m-0 mt-2">{{ result }}</p>
+            </div>
+
+            <div class="card p-4">
+                <h4 class="text-center text-matcha mb-4 fw-bold">Visualisasi Data & Perbandingan Fitur</h4>
+                <div style="position: relative; height:350px; width:100%">
+                    <canvas id="chartPerbandingan"></canvas>
+                </div>
+                <p class="text-muted small text-center mt-3">*Grafik di atas membandingkan nilai input Anda dengan nilai rata-rata empiris data karyawan pada dataset IBM HR.</p>
+            </div>
+
+            <script>
+                const ctx = document.getElementById('chartPerbandingan').getContext('2d');
+                
+                // Ambil data dari Flask backend lewat Jinja2 template
+                const userInput = [
+                    {{ inputs.Age }},
+                    {{ inputs.MonthlyIncome }} / 100, // Kita bagi 100 khusus di chart agar skala visual gaji tidak merusak bar lain
+                    {{ inputs.DistanceFromHome }},
+                    {{ inputs.TotalWorkingYears }},
+                    {{ inputs.JobSatisfaction }} * 5, // Dikalikan agar terlihat jelas skalanya
+                    {{ inputs.YearsAtCompany }}
+                ];
+
+                const avgStay = [{{ avg_stay[0] }}, {{ avg_stay[1] }}/100, {{ avg_stay[2] }}, {{ avg_stay[3] }}, {{ avg_stay[4] }}*5, {{ avg_stay[5] }}];
+                const avgLeave = [{{ avg_leave[0] }}, {{ avg_leave[1] }}/100, {{ avg_leave[2] }}, {{ avg_leave[3] }}, {{ avg_leave[4] }}*5, {{ avg_leave[5] }}];
+
+                new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: ['Usia', 'Gaji (Skala x100)', 'Jarak Kantor (KM)', 'Pengalaman (Thn)', 'Kepuasan (Skala x5)', 'Lama Kerja (Thn)'],
+                        datasets: [
+                            {
+                                label: 'Input Karyawan Ini',
+                                data: userInput,
+                                backgroundColor: '#ff9ebb', // Strawberry Pink
+                                borderColor: '#ff7597',
+                                borderWidth: 1
+                            },
+                            {
+                                label: 'Rata-rata Karyawan Bertahan',
+                                data: avgStay,
+                                backgroundColor: '#8bb89e', // Matcha Green
+                                borderColor: '#66947b',
+                                borderWidth: 1
+                            },
+                            {
+                                label: 'Rata-rata Karyawan Resign',
+                                data: avgLeave,
+                                backgroundColor: '#5c4046', // Cokelat Stroberi Redup
+                                borderColor: '#805962',
+                                borderWidth: 1
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                labels: { color: '#e2ede8' } // Warna teks legenda sesuai dark mode
+                            }
+                        },
+                        scales: {
+                            x: {
+                                ticks: { color: '#e2ede8' },
+                                grid: { color: '#344a3e' }
+                            },
+                            y: {
+                                beginAtZero: true,
+                                ticks: { color: '#e2ede8' },
+                                grid: { color: '#344a3e' }
+                            }
+                        }
+                    }
+                });
+            </script>
+            {% endif %}
+
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
